@@ -10,6 +10,7 @@ package mysqlinternals
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -205,6 +206,79 @@ func (f mysqlField) Decimals() int {
 	return int(f.decimals)
 }
 
+type NullString struct {
+	sql.NullString
+}
+
+// NullInt64 is a type that can be null or an int
+type NullInt64 struct {
+	sql.NullInt64
+}
+
+// NullInt64 is a type that can be null or an int
+type NullFloat64 struct {
+	sql.NullFloat64
+}
+
+// NullTime is a type that can be null or a time
+type NullTime struct {
+	mysql.NullTime
+}
+
+// NullBool is a type that can be null or a bool
+type NullBool struct {
+	sql.NullBool
+}
+
+
+var nullString = []byte("null")
+
+// MarshalJSON correctly serializes a NullString to JSON
+func (n *NullString) MarshalJSON() ([]byte, error) {
+	if n.Valid && n.String != "" {
+		j, e := json.Marshal(n.String)
+		return j, e
+	}
+	return nullString, nil
+}
+
+// MarshalJSON correctly serializes a NullInt64 to JSON
+func (n *NullInt64) MarshalJSON() ([]byte, error) {
+	if n.Valid {
+		j, e := json.Marshal(n.Int64)
+		return j, e
+	}
+	return nullString, nil
+}
+
+// MarshalJSON correctly serializes a NullFloat64 to JSON
+func (n *NullFloat64) MarshalJSON() ([]byte, error) {
+	if n.Valid {
+		j, e := json.Marshal(n.Float64)
+		return j, e
+	}
+	return nullString, nil
+}
+
+// MarshalJSON correctly serializes a NullTime to JSON
+func (n *NullTime) MarshalJSON() ([]byte, error) {
+	if n.Valid {
+		j, e := json.Marshal(n.Time)
+		return j, e
+	}
+	return nullString, nil
+}
+
+// MarshalJSON correctly serializes a NullBool to JSON
+func (n *NullBool) MarshalJSON() ([]byte, error) {
+	if n.Valid {
+		j, e := json.Marshal(n.Bool)
+		return j, e
+	}
+	return nullString, nil
+}
+
+
 const ( // base for reflection
 	reflect_uint8   = uint8(0)
 	reflect_uint16  = uint16(0)
@@ -240,10 +314,10 @@ var ( // reflect.Types
 	typeBytes   = reflect.TypeOf([]byte{})
 	typeTime    = reflect.TypeOf(time.Time{})
 	// nullable types
-	typeNullInt64   = reflect.TypeOf(sql.NullInt64{})
-	typeNullFloat64 = reflect.TypeOf(sql.NullFloat64{})
-	typeNullString  = reflect.TypeOf(sql.NullString{})
-	typeNullTime    = reflect.TypeOf(mysql.NullTime{})
+	typeNullInt64   = reflect.TypeOf(NullInt64{})
+	typeNullFloat64 = reflect.TypeOf(NullFloat64{})
+	typeNullString  = reflect.TypeOf(NullString{})
+	typeNullTime    = reflect.TypeOf(NullTime{})
 	// typeNullBool doesn't match in MySQL, boolean is (unsigned?) tinyint(1),
 	// it may have more than 2 states
 	//typeNullBool = reflect.TypeOf(sql.NullBool{})
